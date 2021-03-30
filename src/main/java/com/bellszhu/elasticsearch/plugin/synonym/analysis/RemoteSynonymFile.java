@@ -193,6 +193,7 @@ public class RemoteSynonymFile implements SynonymFile {
         CloseableHttpResponse response = null;
         try {
             response = executeHttpRequest(head);
+            if (response == null) return false;
             if (response.getStatusLine().getStatusCode() == 200) { // 返回200 才做操作
                 if (!response.getLastHeader(LAST_MODIFIED_HEADER).getValue()
                         .equalsIgnoreCase(lastModified)
