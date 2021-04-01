@@ -20,12 +20,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author bellszhu
@@ -47,6 +46,7 @@ public class DynamicSynonymTokenFilterFactory extends
         return thread;
     });
     private volatile ScheduledFuture<?> scheduledFuture;
+    private final static ConcurrentHashMap<String,CopyOnWriteArrayList<ScheduledFuture>> scheduledFutures = new ConcurrentHashMap(){};
 
     private final String location;
     private final boolean expand;
@@ -90,6 +90,17 @@ public class DynamicSynonymTokenFilterFactory extends
     public TokenStream create(TokenStream tokenStream) {
         throw new IllegalStateException(
                 "Call getChainAwareTokenFilterFactory to specialize this factory for an analysis chain first");
+    }
+        
+    public static void closeIndDynamicSynonym(String indexName) {
+        CopyOnWriteArrayList<ScheduledFuture> futures = scheduledFutures.remove(indexName);
+        if (futures != null) {
+            for (ScheduledFuture sf : futures) {
+                sf.cancel(true);
+            }
+        }
+        logger.info("closeDynamicSynonym！ indexName:{} scheduledFutures.size:{} ",
+                indexName, scheduledFutures.size());
     }
 
     public TokenFilterFactory getChainAwareTokenFilterFactory(
@@ -166,6 +177,7 @@ public class DynamicSynonymTokenFilterFactory extends
             if (scheduledFuture == null) {
                 scheduledFuture = pool.scheduleAtFixedRate(new Monitor(synonymFile),
                                 interval, interval, TimeUnit.SECONDS);
+                scheduledFutures.put(indexSettings.getIndex().getName(),new CopyOnWriteArrayList<ScheduledFuture>(Stream.of(scheduledFuture).collect(Collectors.toList())));
             }
             return synonymFile;
         } catch (Exception e) {
