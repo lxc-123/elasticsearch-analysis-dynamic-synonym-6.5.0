@@ -5,3 +5,8 @@
 该源码修改自https://github.com/bells/elasticsearch-analysis-dynamic-synonym
 文档请阅读上述地址
 适合es6.5.0版
+
+
+优化问题
+1.远程请求文件失败导致定时任务挂起
+2.索引删除-定时任务仍继续执行
