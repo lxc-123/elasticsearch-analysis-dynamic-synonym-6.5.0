@@ -13,6 +13,7 @@ import org.elasticsearch.plugins.Plugin;
 
 import java.util.HashMap;
 import java.util.Map;
+import static org.elasticsearch.plugins.AnalysisPlugin.requiresAnalysisSettings;
 
 
 /**
